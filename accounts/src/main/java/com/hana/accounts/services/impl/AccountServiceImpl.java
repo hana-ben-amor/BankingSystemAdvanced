@@ -1,10 +1,13 @@
 package com.hana.accounts.services.impl;
 
 import com.hana.accounts.constants.AccountConstants;
+import com.hana.accounts.dto.AccountDTO;
 import com.hana.accounts.dto.CustomerDTO;
 import com.hana.accounts.entities.Account;
 import com.hana.accounts.entities.Customer;
 import com.hana.accounts.exceptions.CustomerAlreadyExistsException;
+import com.hana.accounts.exceptions.ResourceNotFoundException;
+import com.hana.accounts.mapper.AccountsMapper;
 import com.hana.accounts.mapper.CustomerMapper;
 import com.hana.accounts.repositories.AccountRepository;
 import com.hana.accounts.repositories.CustomerRepository;
@@ -36,6 +39,7 @@ public class AccountServiceImpl implements IAccountService {
         accountRepository.save(createNewAccount(savedCustomer));
     }
 
+
     private Account createNewAccount(Customer savedCustomer) {
         Account account = new Account();
         account.setCustomerId(savedCustomer.getCustomerId());
@@ -46,5 +50,62 @@ public class AccountServiceImpl implements IAccountService {
         account.setAccountType(AccountConstants.SAVINGS);
         account.setBranchAddress(AccountConstants.ADDRESS);
         return account;
+    }
+
+    @Override
+    public CustomerDTO fetchAccount(String mobileNumber) {
+        Customer customer = customerRepository.findByMobileNumber(mobileNumber).orElseThrow(
+                () -> new ResourceNotFoundException("Customer", "mobileNumber", mobileNumber)
+        );
+
+        Account account = accountRepository.findByCustomerId(customer.getCustomerId()).orElseThrow(
+                () -> new ResourceNotFoundException("Account", "customerId", customer.getCustomerId().toString())
+        );
+        // we need to convert them to dto and return them
+        CustomerDTO customerDTO = CustomerMapper.mapToCustomerDto(customer, new CustomerDTO());
+        customerDTO.setAccountDTO(AccountsMapper.mapToAccountsDto(account,new
+                 AccountDTO()));
+        return customerDTO;
+    }
+
+    @Override
+    public boolean updateAccount(CustomerDTO customerDTO) {
+        boolean isUpdated = false;
+        AccountDTO accountDTO = customerDTO.getAccountDTO();
+        if ( accountDTO != null)
+        {
+            Account account = accountRepository.findById(accountDTO.getAccountNumber()).orElseThrow(
+                    () -> new ResourceNotFoundException("Account", "accountNumber", accountDTO.getAccountNumber().toString())
+            );
+            AccountsMapper.mapToAccounts(accountDTO, account);
+            account =accountRepository.save(account);
+            Long customerId = account.getCustomerId();
+            Customer customer = customerRepository.findById(customerId).orElseThrow(
+                    () -> new ResourceNotFoundException("Customer", "customerId", customerId.toString())
+            );
+            CustomerMapper.mapToCustomer(customerDTO, customer);
+            customerRepository.save(customer);
+            isUpdated = true;
+        }
+        return isUpdated;
+    }
+
+    @Override
+    public boolean deleteAccount(String mobileNumber) {
+        boolean isDeleted = false;
+        Customer customer = customerRepository.findByMobileNumber(mobileNumber)
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Customer", "mobileNumber", mobileNumber)
+                );
+
+        customerRepository.deleteById(customer.getCustomerId());
+        Account account = accountRepository.findByCustomerId(customer.getCustomerId())
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Account", "customerId", customer.getCustomerId().toString()
+                ));
+        accountRepository.deleteByCustomerId(customer.getCustomerId());
+        isDeleted = true;
+
+        return isDeleted;
     }
 }

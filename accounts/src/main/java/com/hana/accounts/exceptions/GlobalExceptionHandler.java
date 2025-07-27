@@ -13,6 +13,16 @@ import java.time.LocalDateTime;
 // this means that this class will handle all the exceptions in the application
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponseDTO> handleResourceNotFoundException(ResourceNotFoundException ex, WebRequest request) {
+        ErrorResponseDTO errorResponse = new ErrorResponseDTO(
+                request.getDescription(false),
+                HttpStatus.NOT_FOUND,
+                ex.getMessage(),
+                LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse,HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(CustomerAlreadyExistsException.class)
     public ResponseEntity<ErrorResponseDTO> handleCustomerAlreadyExistsException(CustomerAlreadyExistsException ex, WebRequest request) {
         ErrorResponseDTO errorResponse = new ErrorResponseDTO(

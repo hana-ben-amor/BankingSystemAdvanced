@@ -9,6 +9,15 @@ public class CustomerDTO {
     private String name;
     private String email;
     private String mobileNumber;
+    private AccountDTO accountDTO;
+
+    public AccountDTO getAccountDTO() {
+        return accountDTO;
+    }
+
+    public void setAccountDTO(AccountDTO accountDTO) {
+        this.accountDTO = accountDTO;
+    }
 
     public String getName() {
         return name;
